@@ -1,0 +1,42 @@
+## Download dataset
+if(!file.exists("./DataFile")){dir.create("./DataFile")}
+fileUrl <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+download.file(fileUrl, destfile = "./DataFile/DataSet.zip")
+unzip(zipfile="./DataFile/DataSet.zip",exdir="./DataFile")
+
+## Merges the training and the test sets to create one data set.
+activity_labels = read.table('./DataFile/UCI HAR Dataset/activity_labels.txt')
+colnames(activity_labels) <- c('ActivityId','ActivityType')
+
+features <- read.table('./DataFile/UCI HAR Dataset/features.txt')
+
+subject_test <- read.table("./DataFile/UCI HAR Dataset/test/subject_test.txt")
+x_test <- read.table("./DataFile/UCI HAR Dataset/test/X_test.txt")
+y_test <- read.table("./DataFile/UCI HAR Dataset/test/y_test.txt")
+colnames(subject_test) <- "SubjectId"
+colnames(x_test) <- features[,2] 
+colnames(y_test) <- "ActivityId"
+
+subject_train <- read.table("./DataFile/UCI HAR Dataset/train/subject_train.txt")
+x_train <- read.table("./DataFile/UCI HAR Dataset/train/X_train.txt")
+y_train <- read.table("./DataFile/UCI HAR Dataset/train/y_train.txt")
+colnames(subject_train) <- "SubjectId"
+colnames(x_train) <- features[,2] 
+colnames(y_train) <-"ActivityId"
+
+Train <- cbind(y_train, subject_train, x_train)
+Test <- cbind(y_test, subject_test, x_test)
+All <- rbind(Train, Test)
+
+## Extracts only the measurements on the mean and standard deviation for each measurement.
+ColNames <- colnames(All)
+Mean_Std <- (grepl("ActivityId", ColNames) | grepl("SubjectId", ColNames) | grepl("mean..", ColNames) | grepl("std..", ColNames))
+Mean_And_Std <- All[, Mean_Std == TRUE]
+
+## Uses descriptive activity names to name the activities in the data set. Appropriately labels the data set with descriptive variable names.
+Descriptive_Activity_Names <- merge(Mean_And_Std, activity_labels, by='ActivityId', all.x=TRUE)
+
+## From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+TidyDataSet <- aggregate(. ~SubjectId + ActivityId, Descriptive_Activity_Names, mean)
+TidyDataSet <- TidyDataSet[order(TidyDataSet$SubjectId, TidyDataSet$ActivityId),]
+write.table(TidyDataSet, "TidyDataSet.txt", row.name=FALSE)
